@@ -20,3 +20,8 @@ def get_db() -> Session:
 @app.get("/all_products/", response_model=list[schemas.ProductList])
 def read_all_products(db: Session = Depends(get_db)):
     return crud.get_all_products(db)
+
+
+@app.get("/products/{product_name}/", response_model=schemas.ProductList)
+def read_product_by_name(product_name: str, db: Session = Depends(get_db)):
+    return crud.get_product_by_name(db=db, name=product_name)
