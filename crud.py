@@ -4,8 +4,12 @@ from sqlalchemy.orm import Session
 from db import models
 
 
-def get_all_products(db: Session):
-    return db.query(models.Product).all()
+def get_all_products(
+        db: Session,
+        skip: int | None = None,
+        limit: int | None = None,
+):
+    return db.query(models.Product).offset(skip).limit(limit).all()
 
 
 def get_product_by_name(db: Session, name: str):

@@ -18,8 +18,12 @@ def get_db() -> Session:
 
 
 @app.get("/all_products/", response_model=list[schemas.ProductList])
-def read_all_products(db: Session = Depends(get_db)):
-    return crud.get_all_products(db)
+def read_all_products(
+        db: Session = Depends(get_db),
+        skip: int = 0,
+        limit: int = 10,
+):
+    return crud.get_all_products(skip=skip, limit=limit, db=db)
 
 
 @app.get("/products/{product_name}/", response_model=schemas.ProductList)
