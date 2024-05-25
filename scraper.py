@@ -1,5 +1,7 @@
 import json
 import time
+from contextlib import asynccontextmanager
+import asyncio
 
 import requests
 
@@ -10,12 +12,8 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from sqlalchemy.exc import SQLAlchemyError
 
-from db.engine import engine
-from sqlalchemy.orm import Session, sessionmaker
-
+from db.engine import SessionLocal
 from db.models import Product
-
-Session = sessionmaker(bind=engine)
 
 URL = "https://www.mcdonalds.com/ua/uk-ua/eat/fullmenu.html"
 
@@ -42,22 +40,17 @@ def normalize_str(product):
 
 def normalize_str_to_float(product, first):
     result = product.strip().replace(f'{first}', '')
-
     if result == "N/A":
         return None
-
     return float(result)
 
 
 def normalize_str_to_int(product, first):
     result = product.strip().replace(f'{first}', '')
-
     if result == "0":
         return 0
-
     if result == "N/A":
         return None
-
     try:
         float_result = float(result)
         return int(float_result)
@@ -143,7 +136,6 @@ def get_all_urls() -> list:
     page = requests.get(URL).content
     soup = BeautifulSoup(page, "html.parser")
     page_quotes = soup.select(".cmp-category__item a")
-
     return page_quotes
 
 
@@ -174,32 +166,45 @@ def get_page_soup(driver: webdriver.Chrome, url: str) -> BeautifulSoup:
     return BeautifulSoup(driver.page_source, "html.parser")
 
 
-def get_all_products() -> None:
-    session = Session()
+@asynccontextmanager
+async def session_scope():
+    session = SessionLocal()
+    try:
+        yield session
+        await session.commit()
+    except:
+        await session.rollback()
+        raise
+    finally:
+        await session.close()
+
+
+async def get_all_products() -> None:
     urls = get_all_urls_from_soup()
     all_products = []
 
     try:
-        with session.begin():
-            with webdriver.Chrome() as driver:
-                for url in urls:
+        with webdriver.Chrome() as driver:
+            for url in urls:
+                try:
                     soup = get_page_soup(driver, url)
                     product_data = asdict(parse_single_product(soup))
                     replace_nbsp_with_space(product_data)
-                    new_product = Product(**product_data)
-                    session.add(new_product)
-                    all_products.append(product_data)
+
+                    async with session_scope() as session:
+                        new_product = Product(**product_data)
+                        session.add(new_product)
+                        all_products.append(product_data)
+                except SQLAlchemyError as e:
+                    print(f"Database error occurred while processing URL {url}: {e}")
+                except Exception as e:
+                    print(f"An error occurred while processing URL {url}: {e}")
 
         with open('products.json', 'w', encoding='utf-8') as f:
             json.dump(all_products, f, ensure_ascii=False, indent=4)
 
-    except SQLAlchemyError as e:
-        session.rollback()
-        print(f"Database error occurred: {e}")
     except Exception as e:
-        print(f"An error occurred: {e}")
-    finally:
-        session.close()
+        print(f"An error occurred outside the loop: {e}")
 
 
 def replace_nbsp_with_space(data: dict) -> None:
@@ -209,4 +214,4 @@ def replace_nbsp_with_space(data: dict) -> None:
 
 
 if __name__ == '__main__':
-    get_all_products()
+    asyncio.run(get_all_products())
