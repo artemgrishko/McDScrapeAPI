@@ -1,20 +1,12 @@
+import crud
+import schemas
+
 from fastapi import FastAPI, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
-
-import crud
-import schemas
-from db.engine import SessionLocal
+from dependencies import get_db
 
 app = FastAPI()
-
-
-async def get_db() -> AsyncSession:
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        await db.close()
 
 
 @app.get("/all_products/", response_model=List[schemas.ProductList])
