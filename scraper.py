@@ -17,6 +17,45 @@ from db.models import Product
 
 URL = "https://www.mcdonalds.com/ua/uk-ua/eat/fullmenu.html"
 
+NA_VALUE = "N/A"
+
+NAME_SELECTOR = ".cmp-product-details-main__heading-title"
+DESCRIPTION_SELECTOR = ".body"
+CALORIES_SELECTOR = (
+    "#pdp-nutrition-summary > div"
+    " > div.primarynutritions.aem-GridColumn.aem-GridColumn--default--12"
+    " > div > ul > li:nth-child(1) > span.value > span:nth-child(3)"
+)
+FATS_SELECTOR = (
+    "#pdp-nutrition-summary > div "
+    "> div.primarynutritions.aem-GridColumn.aem-GridColumn--default--12 > div > ul > li:nth-child(2) > span.value "
+    "> span:nth-child(2)"
+)
+PROTEINS_SELECTOR = (
+    "#pdp-nutrition-summary > div > div.primarynutritions.aem-GridColumn.aem-GridColumn--default--12 > div > ul > "
+    "li:nth-child(3) > span.value > span:nth-child(2)"
+)
+UNSATURATED_FATS_SELECTOR = (
+    "#pdp-nutrition-summary > div > div.secondarynutritions.aem-GridColumn--default--none.aem-GridColumn.aem"
+    "-GridColumn--default--12.aem-GridColumn--offset--default--0 > div > div > div > "
+    "div.cmp-nutrition-summary__details-column-view-desktop > ul > li:nth-child(1) > span.value > span:nth-child(1)"
+)
+SUGAR_SELECTOR = (
+    "#pdp-nutrition-summary > div > div.secondarynutritions.aem-GridColumn--default--none.aem-GridColumn.aem"
+    "-GridColumn--default--12.aem-GridColumn--offset--default--0 > div > div > div > "
+    "div.cmp-nutrition-summary__details-column-view-desktop > ul > li:nth-child(2) > span.value > span:nth-child(1)"
+)
+SALT_SELECTOR = (
+    "#pdp-nutrition-summary > div > div.secondarynutritions.aem-GridColumn--default--none.aem-GridColumn.aem"
+    "-GridColumn--default--12.aem-GridColumn--offset--default--0 > div > div > div > "
+    "div.cmp-nutrition-summary__details-column-view-desktop > ul > li:nth-child(3) > span.value > span.sr-only"
+)
+PORTION_SELECTOR = (
+    "#pdp-nutrition-summary > div > div.secondarynutritions.aem-GridColumn--default--none.aem-GridColumn.aem"
+    "-GridColumn--default--12.aem-GridColumn--offset--default--0 > div > div > div > "
+    "div.cmp-nutrition-summary__details-column-view-desktop > ul > li:nth-child(4) > span.value > span:nth-child(1)"
+)
+
 
 @dataclass
 class ProductDataclass:
@@ -40,17 +79,17 @@ def normalize_str(product):
 
 def normalize_str_to_float(product, first):
     result = product.strip().replace(f'{first}', '')
-    if result == "N/A":
+    if result == NA_VALUE:
         return None
+
     return float(result)
 
 
 def normalize_str_to_int(product, first):
     result = product.strip().replace(f'{first}', '')
-    if result == "0":
-        return 0
-    if result == "N/A":
+    if result == NA_VALUE:
         return None
+
     try:
         float_result = float(result)
         return int(float_result)
@@ -67,57 +106,16 @@ def safe_extract_text(selector, soup, default=""):
 
 
 def parse_single_product(product_soup: Tag) -> ProductDataclass:
-    name = safe_extract_text(
-        ".cmp-product-details-main__heading-title",
-        product_soup
-    )
-    description = safe_extract_text(
-        ".body",
-        product_soup, ""
-    )
+    name = safe_extract_text(NAME_SELECTOR, product_soup)
+    description = safe_extract_text(DESCRIPTION_SELECTOR, product_soup, "")
 
-    calories_selector = (
-        "#pdp-nutrition-summary > div"
-        " > div.primarynutritions.aem-GridColumn.aem-GridColumn--default--12"
-        " > div > ul > li:nth-child(1) > span.value > span:nth-child(3)"
-    )
-    fats_selector = (
-        "#pdp-nutrition-summary > div "
-        "> div.primarynutritions.aem-GridColumn.aem-GridColumn--default--12 > div > ul > li:nth-child(2) > span.value "
-        "> span:nth-child(2)"
-    )
-    proteins_selector = (
-        "#pdp-nutrition-summary > div > div.primarynutritions.aem-GridColumn.aem-GridColumn--default--12 > div > ul > "
-        "li:nth-child(3) > span.value > span:nth-child(2)"
-    )
-    unsaturated_fats_selector = (
-        "#pdp-nutrition-summary > div > div.secondarynutritions.aem-GridColumn--default--none.aem-GridColumn.aem"
-        "-GridColumn--default--12.aem-GridColumn--offset--default--0 > div > div > div > "
-        "div.cmp-nutrition-summary__details-column-view-desktop > ul > li:nth-child(1) > span.value > span:nth-child(1)"
-    )
-    sugar_selector = (
-        "#pdp-nutrition-summary > div > div.secondarynutritions.aem-GridColumn--default--none.aem-GridColumn.aem"
-        "-GridColumn--default--12.aem-GridColumn--offset--default--0 > div > div > div > "
-        "div.cmp-nutrition-summary__details-column-view-desktop > ul > li:nth-child(2) > span.value > span:nth-child(1)"
-    )
-    salt_selector = (
-        "#pdp-nutrition-summary > div > div.secondarynutritions.aem-GridColumn--default--none.aem-GridColumn.aem"
-        "-GridColumn--default--12.aem-GridColumn--offset--default--0 > div > div > div > "
-        "div.cmp-nutrition-summary__details-column-view-desktop > ul > li:nth-child(3) > span.value > span.sr-only"
-    )
-    portion_selector = (
-        "#pdp-nutrition-summary > div > div.secondarynutritions.aem-GridColumn--default--none.aem-GridColumn.aem"
-        "-GridColumn--default--12.aem-GridColumn--offset--default--0 > div > div > div > "
-        "div.cmp-nutrition-summary__details-column-view-desktop > ul > li:nth-child(4) > span.value > span:nth-child(1)"
-    )
-
-    calories = safe_extract_text(calories_selector, product_soup)
-    fats = safe_extract_text(fats_selector, product_soup)
-    proteins = safe_extract_text(proteins_selector, product_soup)
-    unsaturated_fats = safe_extract_text(unsaturated_fats_selector, product_soup)
-    sugar = safe_extract_text(sugar_selector, product_soup)
-    salt = safe_extract_text(salt_selector, product_soup)
-    portion = safe_extract_text(portion_selector, product_soup)
+    calories = safe_extract_text(CALORIES_SELECTOR, product_soup)
+    fats = safe_extract_text(FATS_SELECTOR, product_soup)
+    proteins = safe_extract_text(PROTEINS_SELECTOR, product_soup)
+    unsaturated_fats = safe_extract_text(UNSATURATED_FATS_SELECTOR, product_soup)
+    sugar = safe_extract_text(SUGAR_SELECTOR, product_soup)
+    salt = safe_extract_text(SALT_SELECTOR, product_soup)
+    portion = safe_extract_text(PORTION_SELECTOR, product_soup)
 
     return ProductDataclass(
         name=name,
@@ -136,6 +134,7 @@ def get_all_urls() -> list:
     page = requests.get(URL).content
     soup = BeautifulSoup(page, "html.parser")
     page_quotes = soup.select(".cmp-category__item a")
+
     return page_quotes
 
 
@@ -147,7 +146,7 @@ def get_all_urls_from_soup() -> list:
         if href:
             url = urljoin(URL, href)
             urls.append(url)
-    print(urls)
+
     return urls
 
 
@@ -163,6 +162,7 @@ def handle_show_more(driver: webdriver.Chrome) -> None:
 def get_page_soup(driver: webdriver.Chrome, url: str) -> BeautifulSoup:
     driver.get(url)
     handle_show_more(driver)
+
     return BeautifulSoup(driver.page_source, "html.parser")
 
 
