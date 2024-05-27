@@ -7,7 +7,7 @@ class Product(Base):
     __tablename__ = "product"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(255), unique=True)
+    name = Column(String(255))
     description = Column(String(511), nullable=True)
     calories = Column(Integer)
     fats = Column(Float)
